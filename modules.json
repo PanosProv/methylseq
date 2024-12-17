@@ -130,6 +130,11 @@
                         "git_sha": "2d20463181b1c38981a02e90d3084b5f9fa8d540",
                         "installed_by": ["fastq_align_dedup_bwameth", "modules"]
                     },
+                    "seqtk/sample": {
+                        "branch": "master",
+                        "git_sha": "666652151335353eef2fcd58880bcef5bc2928e1",
+                        "installed_by": ["modules"]
+                    },
                     "trimgalore": {
                         "branch": "master",
                         "git_sha": "4c2d06a5e79abf08ba7f04c58e39c7dad75f094d",
