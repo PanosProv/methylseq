@@ -4,18 +4,32 @@
 //               https://nf-co.re/join
 // TODO nf-core: A subworkflow SHOULD import at least two modules
 
-include { SAMTOOLS_SORT      } from '../../../modules/nf-core/samtools/sort/main'
-include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
+include { SEQTK_SAMPLE } from '../../modules/nf-core/seqtk/sample/main'
+include { SEQTK_SAMPLE } from '../../subworkflows/nf-core/fastq_align_dedup_bismark/main'
+include { LAMBDACONVERSIONRATE } from '../../modules/local/lambda_conversion_rate/main'
+include { SEQTK_SAMPLE } from '../../../modules/nf-core/seqtk/sample/main.nf'
 
 workflow FASTQ_ALIGN_DEDUP_LAMBDA_CONVERSION_RATE_BISMARK {
 
     take:
     // TODO nf-core: edit input (take) channels
-    ch_bam // channel: [ val(meta), [ bam ] ]
+    reads         // [ meta, [ reads ] ]
+    lambda_fasta  // path to lambda fasta file
+    lambda_index  // path to lambda Bismark index
+    subsample_size
 
     main:
+    ch_subsample                  = Channel.empty()
 
-    ch_versions = Channel.empty()
+
+
+    // Subsample reads
+    SEQTK_SAMPLE (
+        reads,
+        subsample_size
+    )
+    ch_subsample = SEQTK_SAMPLE.out.fastq
+
 
     // TODO nf-core: substitute modules here for the modules of your subworkflow
 
