@@ -24,13 +24,12 @@ workflow FASTQ_SUBSAMPLE_ALIGN_DEDUP_LAMBDA_CONVERSION_RATE_SEQTK_BISMARK {
     ch_lambda_conversion_rate = Channel.empty()
     ch_multiqc_files          = Channel.empty()
     ch_versions               = Channel.empty()
+    // Prepare input for SEQTK_SAMPLE
+    ch_seqtk_input = reads.combine(Channel.of(sample_size))
 
 
     // Subsample reads
-    SEQTK_SAMPLE (
-        reads,
-        sample_size
-    )
+    SEQTK_SAMPLE ( ch_seqtk_input )
     ch_sample_reads    = SEQTK_SAMPLE.out.reads
     ch_versions        = ch_versions.mix(SEQTK_SAMPLE.out.versions)
 
@@ -53,12 +52,12 @@ workflow FASTQ_SUBSAMPLE_ALIGN_DEDUP_LAMBDA_CONVERSION_RATE_SEQTK_BISMARK {
     ch_versions               = ch_versions.mix(LAMBDACONVERSIONRATE.out.versions)
 
     // Collect MultiQC inputs
-    ch_multiqc_files = ch_lambda_conversion_rate.collect{ meta, rate -> rate }
+    ch_multiqc_files = ch_lambda_conversion_rate.collect{ meta, conversion_rate -> conversion_rate }
 
     emit:
     // TODO nf-core: edit emitted channels
     lambda_conversion_rate = ch_lambda_conversion_rate // channel: [ val(meta), [ conversion_rate ] ]
     multiqc                = ch_multiqc_files          // path: *txt
-    versions = ch_versions                             // path: version.txt
+    versions               = ch_versions               // path: version.txt
 }
 
