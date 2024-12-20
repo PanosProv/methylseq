@@ -18,9 +18,12 @@ workflow FASTQ_SUBSAMPLE_ALIGN_DEDUP_LAMBDA_CONVERSION_RATE_SEQTK_BISMARK {
     sample_size   // number of reads to sample, default 1M
 
     main:
-    ch_sample_reads                  = Channel.empty()
-    ch_versions                   = Channel.empty()
-
+    // declare empty channels to be filled by module/workflow outputs
+    ch_sample_reads           = Channel.empty()
+    ch_bismark_summary        = Channel.empty()
+    ch_lambda_conversion_rate = Channel.empty()
+    ch_multiqc_files          = Channel.empty()
+    ch_versions               = Channel.empty()
 
 
     // Subsample reads
@@ -29,7 +32,7 @@ workflow FASTQ_SUBSAMPLE_ALIGN_DEDUP_LAMBDA_CONVERSION_RATE_SEQTK_BISMARK {
         sample_size
     )
     ch_sample_reads    = SEQTK_SAMPLE.out.reads
-    ch_versions = ch_versions.mix(SEQTK_SAMPLE.out.versions)
+    ch_versions        = ch_versions.mix(SEQTK_SAMPLE.out.versions)
 
     // Align subsampled reads to lambda genome and deduplicate
     FASTQ_ALIGN_DEDUP_BISMARK (
@@ -39,22 +42,23 @@ workflow FASTQ_SUBSAMPLE_ALIGN_DEDUP_LAMBDA_CONVERSION_RATE_SEQTK_BISMARK {
         false,  // skip_deduplication = false
         false   // cytosine_report = false
     )
+    ch_bismark_summary = FASTQ_ALIGN_DEDUP_BISMARK.out.bismark_summary
+    ch_versions        = ch_versions.mix(FASTQ_ALIGN_DEDUP_BISMARK.out.versions)
 
+    // Calculate lambda conversion rate
+    LAMBDACONVERSIONRATE (
+        ch_bismark_summary
+    )
+    ch_lambda_conversion_rate = LAMBDACONVERSIONRATE.out.conversion_rate
+    ch_versions               = ch_versions.mix(LAMBDACONVERSIONRATE.out.versions)
 
-    // TODO nf-core: substitute modules here for the modules of your subworkflow
-
-    SAMTOOLS_SORT ( ch_bam )
-    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
-
-    SAMTOOLS_INDEX ( SAMTOOLS_SORT.out.bam )
-    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
+    // Collect MultiQC inputs
+    ch_multiqc_files = ch_lambda_conversion_rate.collect{ meta, rate -> rate }
 
     emit:
     // TODO nf-core: edit emitted channels
-    bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
-    bai      = SAMTOOLS_INDEX.out.bai          // channel: [ val(meta), [ bai ] ]
-    csi      = SAMTOOLS_INDEX.out.csi          // channel: [ val(meta), [ csi ] ]
-
-    versions = ch_versions                     // channel: [ versions.yml ]
+    lambda_conversion_rate = ch_lambda_conversion_rate // channel: [ val(meta), [ conversion_rate ] ]
+    multiqc                = ch_multiqc_files          // path: *txt
+    versions = ch_versions                             // path: version.txt
 }
 
